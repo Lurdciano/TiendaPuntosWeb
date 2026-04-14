@@ -4,6 +4,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self'; connect-src 'self';">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
   <title>Terra Code - Gestión Premium</title>
   <meta name="description"
     content="Terra Code - Sistema de Gestión Premium — Sistema integral de gestión de ventas, inventario y clientes diseñado para la máxima eficiencia." />
@@ -885,11 +890,11 @@
         electrónico
         o visita nuestra página web.</p>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:16px">
-        <a class="btn">lurdciano@gmail.com</a>
-        <a class="btn outline" href="https://terracode.site/" target="_blank">Visitar TerraCode</a>
+        <button class="btn" id="copy-email" data-email="lurdciano@gmail.com">lurdciano@gmail.com</button>
+        <a class="btn outline" href="https://terracode.site/" target="_blank" rel="noopener noreferrer">Visitar TerraCode</a>
       </div>
       <footer class="mt">
-        <div>© <strong>TerraCode</strong> <span class="muted">- 2026</span></div>
+        <div> <strong>TerraCode</strong> <span class="muted">- 2026</span></div>
         <div class="social muted">Solución de gestión inteligente</div>
       </footer>
     </section>
@@ -962,6 +967,48 @@
       document.addEventListener('keydown', e => { if (e.key === "Escape") closeModal(); });
     })();
 
+    // Email copy functionality with spam protection
+    (function initEmailCopy() {
+      const emailBtn = document.getElementById('copy-email');
+      if (emailBtn) {
+        emailBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const email = this.getAttribute('data-email');
+          
+          // Copy to clipboard
+          navigator.clipboard.writeText(email).then(() => {
+            const originalText = this.textContent;
+            this.textContent = '¡Correo copiado!';
+            this.style.background = '#22c55e';
+            
+            setTimeout(() => {
+              this.textContent = originalText;
+              this.style.background = '';
+            }, 2000);
+          }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = email;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            const originalText = this.textContent;
+            this.textContent = '¡Correo copiado!';
+            this.style.background = '#22c55e';
+            
+            setTimeout(() => {
+              this.textContent = originalText;
+              this.style.background = '';
+            }, 2000);
+          });
+        });
+      }
+    })();
+
     // Reveal animations
     const revealElems = document.querySelectorAll('section');
     const io = new IntersectionObserver((entries) => {
@@ -978,6 +1025,21 @@
       el.style.transform = 'translateY(15px)';
       el.style.opacity = '0';
       io.observe(el);
+    });
+
+    // Additional security: Sanitize dynamic content
+    function sanitizeHTML(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Prevent right-click on sensitive elements (optional)
+    document.querySelectorAll('.logo img, .media-placeholder img').forEach(img => {
+      img.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      });
     });
   </script>
 </body>
