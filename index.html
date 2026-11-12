@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self'; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; object-src 'none';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="DENY">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -891,10 +891,11 @@
         o visita nuestra página web.</p>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:16px">
         <button class="btn" id="copy-email" data-email="lurdciano@gmail.com">lurdciano@gmail.com</button>
-        <a class="btn outline" href="https://terracode.site/" target="_blank" rel="noopener noreferrer">Visitar TerraCode</a>
+        <a class="btn outline" href="https://terracode.com.ar" target="_blank" rel="noopener noreferrer">Visitar TerraCode</a>
+        <a class="btn outline" href="https://linkedin.com/in/luciano-ruizdiaz" target="_blank" rel="noopener noreferrer">LinkedIn</a>
       </div>
       <footer class="mt">
-        <div> <strong>TerraCode</strong> <span class="muted">- 2026</span></div>
+        <div>Desarrollado por <strong>Luciano Ruiz Diaz</strong> &bull; <strong>TerraCode</strong> <span class="muted">- 2026</span></div>
         <div class="social muted">Solución de gestión inteligente</div>
       </footer>
     </section>
@@ -934,8 +935,8 @@
       const modalMedia = document.getElementById('modal-media');
       const closeBtn = document.querySelector('.modal-close');
 
-      function openModal(content) {
-        modalMedia.innerHTML = content;
+      function openModalMedia(element) {
+        modalMedia.replaceChildren(element);
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
       }
@@ -943,31 +944,48 @@
       function closeModal() {
         modal.style.display = 'none';
         document.body.style.overflow = 'visible';
-        modalMedia.innerHTML = '';
+        modalMedia.replaceChildren();
       }
 
       document.querySelectorAll('.media-placeholder img:not(.no-lightbox)').forEach(img => {
         img.style.cursor = 'zoom-in';
         img.addEventListener('click', function () {
-          openModal(`<img src="${this.src}" style="max-width:100%; max-height:92vh; border-radius:14px; border:2px solid var(--accent-lime);">`);
+          const modalImg = document.createElement('img');
+          modalImg.src = this.src;
+          modalImg.alt = this.alt || 'Demostración de software';
+          modalImg.style.maxWidth = '100%';
+          modalImg.style.maxHeight = '92vh';
+          modalImg.style.borderRadius = '14px';
+          modalImg.style.border = '2px solid var(--accent-lime)';
+          openModalMedia(modalImg);
         });
       });
 
-      document.getElementById('video-trigger').addEventListener('click', function () {
-        openModal(`
-          <video controls autoplay style="max-width:100%; max-height:92vh; border-radius:14px;">
-            <source src="images/Demo.mp4" type="video/mp4">
-            Tu navegador no soporta video.
-          </video>
-        `);
-      });
+      const videoTrigger = document.getElementById('video-trigger');
+      if (videoTrigger) {
+        videoTrigger.addEventListener('click', function () {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.autoplay = true;
+          video.style.maxWidth = '100%';
+          video.style.maxHeight = '92vh';
+          video.style.borderRadius = '14px';
+
+          const source = document.createElement('source');
+          source.src = 'images/Demo.mp4';
+          source.type = 'video/mp4';
+          video.appendChild(source);
+          video.appendChild(document.createTextNode('Tu navegador no soporta video.'));
+          openModalMedia(video);
+        });
+      }
 
       closeBtn.addEventListener('click', closeModal);
       modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
       document.addEventListener('keydown', e => { if (e.key === "Escape") closeModal(); });
     })();
 
-    // Email copy functionality with spam protection
+    // Email copy functionality with fallback
     (function initEmailCopy() {
       const emailBtn = document.getElementById('copy-email');
       if (emailBtn) {
@@ -975,8 +993,7 @@
           e.preventDefault();
           const email = this.getAttribute('data-email');
           
-          // Copy to clipboard
-          navigator.clipboard.writeText(email).then(() => {
+          const notifySuccess = () => {
             const originalText = this.textContent;
             this.textContent = '¡Correo copiado!';
             this.style.background = '#22c55e';
@@ -985,26 +1002,34 @@
               this.textContent = originalText;
               this.style.background = '';
             }, 2000);
-          }).catch(() => {
-            // Fallback for older browsers
+          };
+
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(email).then(notifySuccess).catch(() => {
+              fallbackCopy();
+            });
+          } else {
+            fallbackCopy();
+          }
+
+          function fallbackCopy() {
             const textArea = document.createElement('textarea');
             textArea.value = email;
+            textArea.setAttribute('readonly', '');
             textArea.style.position = 'fixed';
             textArea.style.opacity = '0';
+            textArea.style.pointerEvents = 'none';
             document.body.appendChild(textArea);
             textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            
-            const originalText = this.textContent;
-            this.textContent = '¡Correo copiado!';
-            this.style.background = '#22c55e';
-            
-            setTimeout(() => {
-              this.textContent = originalText;
-              this.style.background = '';
-            }, 2000);
-          });
+            try {
+              document.execCommand('copy');
+              notifySuccess();
+            } catch (err) {
+              console.error('No se pudo copiar el correo:', err);
+            } finally {
+              document.body.removeChild(textArea);
+            }
+          }
         });
       }
     })();
@@ -1026,13 +1051,6 @@
       el.style.opacity = '0';
       io.observe(el);
     });
-
-    // Additional security: Sanitize dynamic content
-    function sanitizeHTML(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
 
     // Prevent right-click on sensitive elements (optional)
     document.querySelectorAll('.logo img, .media-placeholder img').forEach(img => {
